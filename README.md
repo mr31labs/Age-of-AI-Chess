@@ -1,16 +1,76 @@
-# React + Vite
+# ⚡ Age of AI — Neural Chess Engine
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A futuristic chess web app with a cyberpunk "Age of AI" aesthetic. Play against a neural AI opponent on a custom-built board with real-time game commentary, metrics tracking, and captured pieces display.
 
-Currently, two official plugins are available:
+![Full Board](docs/images/full-board.png)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## ✨ Features
 
-## React Compiler
+- **Custom Click-to-Move Board** — Select a piece, see legal moves highlighted, click to move
+- **AI Opponent** — Plays automatically after each human move
+- **Neural Feed** — Real-time log of moves and AI commentary in a terminal-style panel
+- **Metrics Panel** — Live win probability, resource usage, latency, and move counter
+- **Captured Pieces Tracker** — See which pieces each side has lost during the match
+- **Cyberpunk UI** — Neon glow effects, Orbitron display font, animated grid background, glassmorphism panels
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🎮 How to Play
 
-## Expanding the ESLint configuration
+### 1. Select a Piece
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Click any white piece to select it. The selected square glows cyan, and legal moves appear as dots on valid target squares. Capture targets are shown with a pink ring.
+
+![Piece Selection](docs/images/selected-piece.png)
+
+### 2. Make Your Move
+
+Click on any highlighted square to move your piece. The AI will automatically respond within ~1 second.
+
+### 3. Track Captures
+
+As pieces are captured, they appear in the **AI LOSSES** row (above the board) and **YOUR LOSSES** row (below the board), sorted by piece value.
+
+![Mid-game with Captures](docs/images/midgame-capture.png)
+
+### 4. Reset
+
+Click **↻ RESET NEURAL MATCH** at any time to start a new game.
+
+## 🛠 Tech Stack
+
+| Technology | Purpose |
+|---|---|
+| **Vite** | Build tool & dev server |
+| **React 19** | UI framework |
+| **chess.js** | Chess logic & move validation |
+| **Vanilla CSS** | Custom cyberpunk styling |
+
+> **Note:** This project does **not** use `react-chessboard` — the board is a fully custom React component using Unicode chess pieces and click-to-move interaction, built to ensure compatibility with React 19.
+
+## 🚀 Getting Started
+
+```bash
+# Clone the repo
+git clone git@github.com:mr31labs/Age-of-AI-Chess.git
+cd Age-of-AI-Chess
+
+# Install dependencies
+npm install
+
+# Start the dev server
+npm run dev
+```
+
+Open [http://localhost:5173](http://localhost:5173) in your browser and start playing.
+
+## 📁 Project Structure
+
+```
+src/
+├── App.jsx       # Game logic, custom board, AI, all UI components
+├── index.css     # Full cyberpunk theme & responsive styles
+└── main.jsx      # React entry point
+```
+
+## 📜 License
+
+MIT
