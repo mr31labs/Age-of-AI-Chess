@@ -1,19 +1,37 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Chess } from 'chess.js';
+import { THEMES, DEFAULT_THEME, THEME_IDS } from './themes.js';
 import './index.css';
 
 // ============================================================
-//  PIECE UNICODE MAP
+//  THEME SELECTOR
 // ============================================================
-const PIECE_UNICODE = {
-  wp: '♙', wn: '♘', wb: '♗', wr: '♖', wq: '♕', wk: '♔',
-  bp: '♟', bn: '♞', bb: '♝', br: '♜', bq: '♛', bk: '♚',
-};
+function ThemeSelector({ currentTheme, onSelect }) {
+  return (
+    <div className="theme-selector">
+      {THEME_IDS.map(id => {
+        const t = THEMES[id];
+        const active = id === currentTheme;
+        return (
+          <button
+            key={id}
+            className={`theme-card ${active ? 'active' : ''}`}
+            onClick={() => onSelect(id)}
+          >
+            <span className="theme-icon">{t.icon}</span>
+            <span className="theme-name">{t.name}</span>
+            <span className="theme-desc">{t.description}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 // ============================================================
 //  CUSTOM CHESSBOARD — click-to-move
 // ============================================================
-function CustomBoard({ game, selectedSquare, legalMoves, onSquareClick }) {
+function CustomBoard({ game, selectedSquare, legalMoves, onSquareClick, pieceMap }) {
   const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
   const ranks = [8, 7, 6, 5, 4, 3, 2, 1];
 
@@ -31,7 +49,7 @@ function CustomBoard({ game, selectedSquare, legalMoves, onSquareClick }) {
 
             let pieceChar = '';
             if (piece) {
-              pieceChar = PIECE_UNICODE[`${piece.color}${piece.type}`] || '';
+              pieceChar = pieceMap[`${piece.color}${piece.type}`] || '';
             }
 
             return (
@@ -60,14 +78,11 @@ function CustomBoard({ game, selectedSquare, legalMoves, onSquareClick }) {
 // ============================================================
 //  CAPTURED PIECES DISPLAY
 // ============================================================
-// Captured pieces are tracked in state (not derived from history)
-// because creating Chess(fen) copies loses move history.
-
-// Sort order for display: q, r, b, n, p
 const PIECE_ORDER = { q: 0, r: 1, b: 2, n: 3, p: 4 };
 
-function CapturedPieces({ captured, color, label }) {
+function CapturedPieces({ captured, color, label, pieceMap }) {
   const sorted = [...captured].sort((a, b) => (PIECE_ORDER[a] ?? 9) - (PIECE_ORDER[b] ?? 9));
+  const prefix = color === 'black' ? 'b' : 'w';
   return (
     <div className={`captured-row ${color}`}>
       <span className="captured-label">{label}</span>
@@ -75,7 +90,7 @@ function CapturedPieces({ captured, color, label }) {
         {sorted.length === 0 && <span className="captured-empty">—</span>}
         {sorted.map((type, i) => (
           <span key={i} className={`captured-piece ${color === 'black' ? 'black-piece' : 'white-piece'}`}>
-            {PIECE_UNICODE[`${color === 'black' ? 'b' : 'w'}${type}`]}
+            {pieceMap[`${prefix}${type}`]}
           </span>
         ))}
       </div>
@@ -84,18 +99,18 @@ function CapturedPieces({ captured, color, label }) {
 }
 
 // ============================================================
-//  AI LOG (NEURAL FEED)
+//  AI LOG (NEURAL FEED / QUEST LOG / FATE CHRONICLE)
 // ============================================================
-function AILog({ logs, status }) {
+function AILog({ logs, status, labels }) {
   const endRef = useRef(null);
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [logs]);
 
   return (
     <div className="side-panel left-panel">
-      <h2 className="neon-text panel-title">⟨ NEURAL FEED ⟩</h2>
+      <h2 className="accent-1-text panel-title">{labels.logTitle}</h2>
       <div className="status-row">
-        <span className="label">STATUS:</span>
-        <span className="neon-text-pink blink">{status}</span>
+        <span className="label">{labels.statusLabel}</span>
+        <span className="accent-2-text blink">{status}</span>
       </div>
       <div className="log-container">
         {logs.map((l, i) => (
@@ -113,22 +128,23 @@ function AILog({ logs, status }) {
 // ============================================================
 //  METRICS PANEL
 // ============================================================
-function Metrics({ moveCount, gameStatus }) {
+function Metrics({ moveCount, gameStatus, labels }) {
+  const s = labels.statLabels;
   const winProb = Math.max(5, 50 - moveCount * 2 + Math.floor(Math.random() * 10));
   const resources = Math.min(99, 30 + moveCount * 3);
   const latency = 8 + Math.floor(Math.random() * 20);
 
   return (
     <div className="side-panel right-panel">
-      <h2 className="neon-text panel-title">⟨ METRICS ⟩</h2>
-      <div className="metric-row"><span>WIN PROBABILITY</span><span className="neon-text-pink">{winProb}%</span></div>
-      <div className="progress-bar"><div className="progress-fill pink" style={{ width: `${winProb}%` }} /></div>
-      <div className="metric-row"><span>RESOURCES</span><span className="neon-text">{resources}%</span></div>
-      <div className="progress-bar"><div className="progress-fill cyan" style={{ width: `${resources}%` }} /></div>
-      <div className="metric-row small"><span>LATENCY</span><span>{latency}ms</span></div>
-      <div className="metric-row small"><span>MOVES</span><span>{moveCount}</span></div>
-      <div className="metric-row small"><span>ENGINE</span><span className="neon-text">ACTIVE</span></div>
-      {gameStatus && <div className="game-over-badge"><span className="neon-text-pink">{gameStatus}</span></div>}
+      <h2 className="accent-1-text panel-title">{labels.metricsTitle}</h2>
+      <div className="metric-row"><span>{s.prob}</span><span className="accent-2-text">{winProb}%</span></div>
+      <div className="progress-bar"><div className="progress-fill accent-2-bg" style={{ width: `${winProb}%` }} /></div>
+      <div className="metric-row"><span>{s.resources}</span><span className="accent-1-text">{resources}%</span></div>
+      <div className="progress-bar"><div className="progress-fill accent-1-bg" style={{ width: `${resources}%` }} /></div>
+      <div className="metric-row small"><span>{s.latency}</span><span>{latency}ms</span></div>
+      <div className="metric-row small"><span>{s.moves}</span><span>{moveCount}</span></div>
+      <div className="metric-row small"><span>{s.engine}</span><span className="accent-1-text">{s.engineVal}</span></div>
+      {gameStatus && <div className="game-over-badge"><span className="accent-2-text">{gameStatus}</span></div>}
     </div>
   );
 }
@@ -137,6 +153,9 @@ function Metrics({ moveCount, gameStatus }) {
 //  MAIN APP
 // ============================================================
 export default function App() {
+  const [themeId, setThemeId] = useState(DEFAULT_THEME);
+  const theme = THEMES[themeId];
+
   const [game, setGame] = useState(new Chess());
   const [selectedSquare, setSelectedSquare] = useState(null);
   const [legalMoves, setLegalMoves] = useState([]);
@@ -150,49 +169,45 @@ export default function App() {
     setLogs(prev => [...prev.slice(-24), { message: msg, type }]);
   }, []);
 
+  // ---- APPLY THEME CSS VARS ----
   useEffect(() => {
-    const t1 = setTimeout(() => addLog('Neural Engine v9.2 online.'), 600);
-    const t2 = setTimeout(() => addLog('Click a piece to begin.'), 1200);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, [addLog]);
+    const root = document.documentElement;
+    Object.entries(theme.cssVars).forEach(([k, v]) => root.style.setProperty(k, v));
+
+    // Load fonts
+    const fontUrl = `https://fonts.googleapis.com/css2?${theme.fonts.map(f => `family=${f}`).join('&')}&display=swap`;
+    let link = document.getElementById('theme-font-link');
+    if (!link) {
+      link = document.createElement('link');
+      link.id = 'theme-font-link';
+      link.rel = 'stylesheet';
+      document.head.appendChild(link);
+    }
+    link.href = fontUrl;
+  }, [theme]);
+
+  // ---- INIT MESSAGES ON THEME CHANGE ----
+  useEffect(() => {
+    setLogs([{ message: 'System initialized.', type: 'info' }]);
+    const timers = theme.initMessages.map((msg, i) =>
+      setTimeout(() => addLog(msg), 600 + i * 600)
+    );
+    return () => timers.forEach(clearTimeout);
+  }, [themeId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---- CLICK HANDLER ----
   function handleSquareClick(sq) {
-    if (gameStatus) return; // game is over
-
+    if (gameStatus) return;
     const piece = game.get(sq);
 
-    // If a square is already selected
     if (selectedSquare) {
-      // Clicking the same square = deselect
-      if (sq === selectedSquare) {
-        setSelectedSquare(null);
-        setLegalMoves([]);
-        return;
-      }
-
-      // If clicking one of the legal target squares → make the move
-      if (legalMoves.includes(sq)) {
-        makeHumanMove(selectedSquare, sq);
-        return;
-      }
-
-      // Clicking another own piece → reselect
-      if (piece && piece.color === 'w') {
-        selectPiece(sq);
-        return;
-      }
-
-      // Otherwise deselect
-      setSelectedSquare(null);
-      setLegalMoves([]);
-      return;
+      if (sq === selectedSquare) { setSelectedSquare(null); setLegalMoves([]); return; }
+      if (legalMoves.includes(sq)) { makeHumanMove(selectedSquare, sq); return; }
+      if (piece && piece.color === 'w') { selectPiece(sq); return; }
+      setSelectedSquare(null); setLegalMoves([]); return;
     }
 
-    // No square selected yet — select a white piece
-    if (piece && piece.color === 'w') {
-      selectPiece(sq);
-    }
+    if (piece && piece.color === 'w') selectPiece(sq);
   }
 
   function selectPiece(sq) {
@@ -203,11 +218,8 @@ export default function App() {
 
   function makeHumanMove(from, to) {
     const gameCopy = new Chess(game.fen());
-
-    // Determine if promotion
     const piece = gameCopy.get(from);
-    const isPromotion =
-      piece && piece.type === 'p' &&
+    const isPromotion = piece && piece.type === 'p' &&
       ((piece.color === 'w' && to[1] === '8') || (piece.color === 'b' && to[1] === '1'));
 
     let move;
@@ -215,17 +227,12 @@ export default function App() {
       move = gameCopy.move({ from, to, promotion: isPromotion ? 'q' : undefined });
     } catch {
       addLog('Invalid move.', 'error');
-      setSelectedSquare(null);
-      setLegalMoves([]);
+      setSelectedSquare(null); setLegalMoves([]);
       return;
     }
 
-    // Track capture
     if (move.captured) {
-      setCapturedPieces(prev => ({
-        ...prev,
-        b: [...prev.b, move.captured],  // white captured a black piece
-      }));
+      setCapturedPieces(prev => ({ ...prev, b: [...prev.b, move.captured] }));
     }
 
     setGame(gameCopy);
@@ -235,31 +242,21 @@ export default function App() {
     setStatus('PROCESSING');
     addLog(`Human played ${move.san}.`);
 
-    if (gameCopy.isGameOver()) {
-      handleGameOver(gameCopy);
-      return;
-    }
-
-    // AI responds
+    if (gameCopy.isGameOver()) { handleGameOver(gameCopy); return; }
     setTimeout(() => makeAIMove(gameCopy), 600 + Math.random() * 800);
   }
 
   function makeAIMove(currentGame) {
     if (currentGame.isGameOver()) { handleGameOver(currentGame); return; }
-
     const moves = currentGame.moves();
     if (!moves.length) return;
 
     const aiMove = moves[Math.floor(Math.random() * moves.length)];
-    let aiMoveResult;
-    try { aiMoveResult = currentGame.move(aiMove); } catch { addLog('AI engine error.', 'error'); return; }
+    let result;
+    try { result = currentGame.move(aiMove); } catch { addLog('AI engine error.', 'error'); return; }
 
-    // Track capture
-    if (aiMoveResult.captured) {
-      setCapturedPieces(prev => ({
-        ...prev,
-        w: [...prev.w, aiMoveResult.captured],  // AI captured a white piece
-      }));
+    if (result.captured) {
+      setCapturedPieces(prev => ({ ...prev, w: [...prev.w, result.captured] }));
     }
 
     const newGame = new Chess(currentGame.fen());
@@ -267,7 +264,10 @@ export default function App() {
     setMoveCount(prev => prev + 1);
     setStatus('WAITING');
     addLog(`AI responds: ${aiMove}`, 'info');
-    addLog('Probability matrix recalculated.', 'info');
+
+    // Theme-specific flavor text
+    const flavor = theme.flavorText[Math.floor(Math.random() * theme.flavorText.length)];
+    addLog(flavor, 'info');
 
     if (newGame.isGameOver()) handleGameOver(newGame);
   }
@@ -286,48 +286,54 @@ export default function App() {
 
   function resetGame() {
     setGame(new Chess());
-    setSelectedSquare(null);
-    setLegalMoves([]);
-    setMoveCount(0);
-    setGameStatus(null);
+    setSelectedSquare(null); setLegalMoves([]);
+    setMoveCount(0); setGameStatus(null);
     setStatus('IDLE');
     setCapturedPieces({ w: [], b: [] });
-    setLogs([{ message: 'System reset. Click a piece to begin.', type: 'info' }]);
+    setLogs([{ message: 'System reset.', type: 'info' }]);
+    theme.initMessages.forEach((msg, i) =>
+      setTimeout(() => addLog(msg), 400 + i * 500)
+    );
   }
+
+  const L = theme.labels;
 
   return (
     <div className="app-wrapper">
       <header className="app-header">
         <h1 className="title">
-          <span className="neon-text">AGE</span>{' '}
-          <span className="dim">OF</span>{' '}
-          <span className="neon-text-pink">AI</span>
+          <span className="accent-1-text">{L.title[0]}</span>{' '}
+          <span className="dim">{L.title[1]}</span>{' '}
+          <span className="accent-2-text">{L.title[2]}</span>
         </h1>
-        <p className="subtitle">NEURAL CHESS ENGINE v9.2</p>
+        <p className="subtitle">{L.subtitle}</p>
       </header>
 
+      <ThemeSelector currentTheme={themeId} onSelect={setThemeId} />
+
       <div className="game-container">
-        <AILog logs={logs} status={status} />
+        <AILog logs={logs} status={status} labels={L} />
 
         <div className="board-wrapper">
-          <CapturedPieces captured={capturedPieces.b} color="black" label="AI LOSSES" />
+          <CapturedPieces captured={capturedPieces.b} color="black" label={L.capturedTop} pieceMap={theme.pieceMap} />
           <CustomBoard
             game={game}
             selectedSquare={selectedSquare}
             legalMoves={legalMoves}
             onSquareClick={handleSquareClick}
+            pieceMap={theme.pieceMap}
           />
-          <CapturedPieces captured={capturedPieces.w} color="white" label="YOUR LOSSES" />
+          <CapturedPieces captured={capturedPieces.w} color="white" label={L.capturedBottom} pieceMap={theme.pieceMap} />
           <div className="board-controls">
-            <button className="reset-btn" onClick={resetGame}>↻ RESET NEURAL MATCH</button>
+            <button className="reset-btn" onClick={resetGame}>{L.resetButton}</button>
           </div>
         </div>
 
-        <Metrics moveCount={moveCount} gameStatus={gameStatus} />
+        <Metrics moveCount={moveCount} gameStatus={gameStatus} labels={L} />
       </div>
 
       <footer className="app-footer">
-        <span className="dim">// SYSTEM ACTIVE — ENCRYPTED CHANNEL — MOVE DATA LOGGED //</span>
+        <span className="dim">{L.footer}</span>
       </footer>
     </div>
   );
